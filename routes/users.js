@@ -1,8 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../database/db_connection");
-const fs = require("fs");
+// const fs = require("fs");
 const bcrypt = require("bcrypt");
+const { v4: uuidv4 } = require("uuid");
+const path = require("path");
 //token
 const jwt = require("jsonwebtoken");
 const JWT_SECRET =
@@ -26,6 +28,7 @@ const {
   changeUsernameInDatabase,
   fetchUserFromDatabaseByUsername,
   deleteAllUserRatingsByUserId,
+  saveImageToFolder,
 } = require("../utils/functions");
 //middlewares imports
 const {
@@ -37,29 +40,41 @@ const {
 //sending emails imports
 const { sendForgotPasswordEmail } = require("../utils/sendingEmails");
 
+const multer = require("multer");
+const storage = multer.memoryStorage();
+const upload = multer();
 //REGISTRATION
 router.post(
   "/register",
-  uploadRegister.single("image"),
+  upload.any(),
+  checkUsernameExistsRegistration,
+  checkEmailExistsRegistration,
   async function (req, res) {
     const { username, email, password, date_of_birth } = req.body;
+    let filename = null;
+    if (req.files.length === 1) {
+      const avatar = req.files[0];
+      const fileExtension = path.extname(avatar.originalname).toLowerCase();
+      filename = `${uuidv4()}${fileExtension}`;
+      try {
+        let result = await saveImageToFolder(
+          avatar.buffer,
+          filename,
+          `./images/avatars/`,
+          fileExtension
+        );
+        console.log(result);
+      } catch (err) {
+        console.log("cannot save image in foolder, an error occurred:", err);
+      }
+    }
+
     try {
-      let user = await fetchUserFromDatabaseByUsername(username);
-      if (user !== null)
-        return res.status(404).send("username already exists in database!");
-
-      let emailExistResult = await checkEmailExistsInDatabase(email);
-      if (emailExistResult !== null)
-        return res.status(404).send("Email already exists in database!");
-
       let salt = await bcrypt.genSalt(10);
       let hashed = await bcrypt.hash(password, salt);
-
-      let avatarName = req.file === undefined ? null : req.file.filename;
-
       db.query(
         "INSERT INTO users(username, email, password, avatar, date_of_birth) VALUES (?, ?, ?, ?, ?)",
-        [username, email, hashed, avatarName, date_of_birth],
+        [username, email, hashed, filename, date_of_birth],
         (err, results) => {
           if (err) return res.status(500).send("cannot register user!");
           else
@@ -70,6 +85,7 @@ router.post(
       console.log(err);
       return res.status(500).send("something went wrong!");
     }
+    // res.status(200).send("gicior");
   }
 );
 //LOGIN

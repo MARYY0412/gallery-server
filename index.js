@@ -4,6 +4,8 @@ var db = require("./database/db_connection");
 const cors = require("cors");
 const ejs = require("ejs");
 
+// const bodyParser = require("body-parser");
+// app.use(bodyParser.json());
 app.set("view engine", "ejs");
 app.engine("ejs", ejs.renderFile);
 app.use(cors());

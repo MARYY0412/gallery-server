@@ -45,18 +45,26 @@ router.post("/addsingle", uploadSingle.single("image"), (req, res) => {
 router.post("/addmultiple", uploadMultiple.array("images"), (req, res) => {
   let query =
     "INSERT INTO images(name, user_id, description, date_added) VALUES (?, ?, ?, ?)";
-  console.log(req.body);
-
-  req.files.forEach((item, index) => {
-    db.query(
-      query,
-      [req.files[index].filename, req.body.user_id, null, req.body.date_added],
-      (err, results) => {
-        if (err) res.status(500).send("cannot add images to database");
-        else res.status(200).send("images has been added to database!");
-      }
-    );
-  });
+  try {
+    req.files.forEach((item, index) => {
+      db.query(
+        query,
+        [
+          req.files[index].filename,
+          req.body.user_id,
+          null,
+          req.body.date_added,
+        ],
+        (err, results) => {
+          if (err) throw err;
+          else console.log("image has been added to database!");
+        }
+      );
+    });
+    res.status(200).send("Images has been added to database");
+  } catch (err) {
+    console.log("cannot save image, an error occurred:", err);
+  }
 });
 
 //SENDING USER IMAGES TO FRONT
@@ -78,7 +86,7 @@ router.get("/user/:user_id", async (req, res) => {
           "./images/usersImages/"
         );
         let imageRatings = await fetchImageRatingsFromDatabase(item.ID);
-        console.log(imageRatings);
+        // console.log(imageRatings);
         imagesToSend.push({
           ...item,
           username: username,
@@ -113,7 +121,6 @@ router.get("/photo/:image_id", async (req, res) => {
         try {
           username = await fetchUsernameByIdFromDatabase(result[0].user_id);
           imageRatings = await fetchImageRatingsFromDatabase(result[0].ID);
-          console.log(imageRatings);
         } catch (err) {
           //if error username is still null
           console.log(err);

@@ -27,6 +27,24 @@ const deleteImageFromFolder = (filename, path) => {
     });
   });
 };
+const saveImageToFolder = (
+  imageData, //buffer
+  filename, //name of fiile
+  directoryPath //path
+  // fileExtension
+) => {
+  return new Promise((resolve, reject) => {
+    // const filePath = `${directoryPath}/${filename}${fileExtension}`;
+    const filePath = `${directoryPath}/${filename}`;
+    fs.writeFile(filePath, imageData, "binary", (err) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(filePath);
+      }
+    });
+  });
+};
 //user database
 const deleteUserFromDatabase = (user_id) => {
   return new Promise((resolve, reject) => {
@@ -326,4 +344,5 @@ module.exports = {
   deleteImageRatingsByIdFromDatabase,
   deleteAllUserRatingsByUserId,
   fetchImageNameByIdFromDatabase,
+  saveImageToFolder,
 };

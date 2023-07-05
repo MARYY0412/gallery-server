@@ -1,45 +1,26 @@
 const db = require("../database/db_connection");
-
+const {
+  checkUsernameExistsInDatabase,
+  checkEmailExistsInDatabase,
+} = require("../utils/functions");
 //register middlewares
-function checkEmailExistsRegistration(req, res, next) {
+const checkEmailExistsRegistration = async (req, res, next) => {
   const email = req.body.email;
-  console.log("check email", email);
-  db.query(
-    "SELECT COUNT(*) as count FROM users WHERE email = ?",
-    [email],
-    function (err, results, fields) {
-      if (err) res.status(500).send("something went wrong");
 
-      const count = results[0].count;
-      console.log(count);
-      if (count > 0) {
-        return res
-          .status(400)
-          .send("Email address already exists in database!");
-      }
-      next();
-    }
-  );
-}
+  const count = await checkEmailExistsInDatabase(email);
 
-function checkUsernameExistsRegistration(req, res, next) {
-  const username = req.body.username;
-  console.log("check username", req.body);
-  db.query(
-    "SELECT COUNT(*) as count FROM users WHERE username = ?",
-    [username],
-    function (err, results, fields) {
-      if (err) res.status(500).send("something went wrong");
-      else {
-        const count = results[0].count;
-        if (count > 0) {
-          return res.status(400).send("Username already exist in database!");
-        }
-        next();
-      }
-    }
-  );
-}
+  if (count === null) next();
+  else res.status(404).send("email already exists in database!");
+};
+
+const checkUsernameExistsRegistration = async (req, res, next) => {
+  const { username } = req.body;
+
+  let count = await checkUsernameExistsInDatabase(username);
+
+  if (count === null) next();
+  else res.status(404).send("username already exists in database!");
+};
 //login middlewares
 function checkUsernameExistsLogin(req, res, next) {
   const { username } = req.body;
