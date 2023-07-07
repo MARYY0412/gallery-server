@@ -1,4 +1,5 @@
 const db = require("../database/db_connection");
+
 const {
   checkUsernameExistsInDatabase,
   checkEmailExistsInDatabase,

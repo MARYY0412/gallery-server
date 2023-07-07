@@ -163,7 +163,6 @@ router.get("/random/:amount", (req, res) => {
       DrawedImages.push(AllImages[randomIndex]);
     }
     //.3.adding object with files to array and send array to frontend
-    console.log(DrawedImages);
     for (let i = 0; i < amount; i++) {
       try {
         let dataImage = await readImageFromFolder(
@@ -183,13 +182,8 @@ router.get("/random/:amount", (req, res) => {
         console.log(err);
       }
     }
-    //.check array is empty
-    // if (final.length === 0) {
-    //   res.status(404).send("Cannot find images!");
-    // } else {
-    //everything ok
+    //komentarz
     res.status(200).send(final);
-    // }
   });
 });
 //DELETE IMAGE
