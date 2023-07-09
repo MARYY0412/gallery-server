@@ -32,6 +32,7 @@ const {
 } = require("../utils/functions");
 //middlewares imports
 const {
+  checkToken,
   checkUsernameExistsRegistration,
   checkEmailExistsRegistration,
   checkUsernameExistsLogin,
@@ -131,7 +132,7 @@ router.post("/login", checkUsernameExistsLogin, async (req, res) => {
   }
 });
 //CHANGE USER PASSWORD
-router.post("/change-password", async (req, res) => {
+router.post("/change-password", checkToken, async (req, res) => {
   const { originalPass, newPass, userId } = req.body;
   try {
     let user = await fetchUserFormDatabase(userId);
@@ -235,7 +236,7 @@ router.post("/reset-password/:id/:token", async (req, res) => {
   }
 });
 //user profile
-router.post("/user/:userId", async (req, res) => {
+router.post("/user/:userId", checkToken, async (req, res) => {
   const { userId } = req.params;
 
   let user = await fetchUserFormDatabase(userId);
@@ -288,7 +289,7 @@ router
     const user = jwt.verify(token, JWT_SECRET, (err, decoded) => {
       if (err) {
         console.log(err);
-        return res.status(401).json({ meessage: "token expired" });
+        return res.status(401).json({ message: "token expired" });
       } else {
         next();
       }
@@ -298,13 +299,13 @@ router
   .post(async (req, res) => {
     const id = req.body.id;
     //find user in database
-    let user = await fetchUserFormDatabase(id);
 
-    console.log(user.avatar);
-    if (user === null) res.status(404).send("Cannot find user in database");
-
-    let filename = user.avatar === null ? "avatar-default.jpg" : user.avatar;
     try {
+      let user = await fetchUserFormDatabase(id);
+      if (user === null)
+        return res.status(404).send("Cannot find user in database");
+
+      let filename = user.avatar === null ? "avatar-default.jpg" : user.avatar;
       const avatar = await readImageFromFolder(filename, "./images/avatars/");
 
       res.set({ "Content-Type": "image/png" });
@@ -318,7 +319,7 @@ router
       });
     } catch (err) {
       console.log(err);
-      res.status(500).send("Something went wrong");
+      res.status(500).send("user not logged");
     }
   })
   //UPDATE USER'S PROFILE = username, avatar, email

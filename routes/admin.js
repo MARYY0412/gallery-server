@@ -1,8 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../database/db_connection");
-const fs = require("fs");
 
+///utils imports
 const {
   deleteImageFromFolder,
   deleteImageFromDatabase,
@@ -13,21 +13,23 @@ const {
   deleteUserFromDatabase,
   deleteAllUserRatingsByUserId,
 } = require("../utils/functions");
+//middlewares imports
+const { checkToken } = require("../middlewares/users");
 
-router.get("/all-users", (req, res) => {
+router.get("/all-users", checkToken, (req, res) => {
   db.query("SELECT * FROM users", (err, results) => {
     if (err) return res.status(500).send("Cannot upload users!");
     else res.status(200).send(results);
   });
 });
-router.get("/all-images", (req, res) => {
+router.get("/all-images", checkToken, (req, res) => {
   db.query("SELECT * FROM images", (err, results) => {
     if (err) return res.status(500).send("Cannot upload images!");
     else res.status(200).send(results);
   });
 });
 
-router.delete(`/image-delete/:imageId`, async (req, res) => {
+router.delete(`/image-delete/:imageId`, checkToken, async (req, res) => {
   const { imageId } = req.params;
   try {
     const imageName = await fetchImageNameByIdFromDatabase(imageId);
@@ -38,7 +40,7 @@ router.delete(`/image-delete/:imageId`, async (req, res) => {
     res.status(500).send("cannot delete image");
   }
 });
-router.delete(`/user-delete/:userId`, async (req, res) => {
+router.delete(`/user-delete/:userId`, checkToken, async (req, res) => {
   const { userId } = req.params;
   try {
     let imagesToDelete = await findImagesInDatabase(userId);
