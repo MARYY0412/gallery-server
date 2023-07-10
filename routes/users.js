@@ -396,7 +396,7 @@ router
       res.status(200).send("User deleted successfully");
     } catch (err) {
       console.log(err);
-      res.status(500).send("Something gone wrong while deleting the account");
+      res.status(500).send("Something went wrong while deleting the account");
     }
   });
 

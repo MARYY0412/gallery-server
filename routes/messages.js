@@ -3,8 +3,8 @@ const router = express.Router();
 const db = require("../database/db_connection");
 
 const { checkUsernameExistsInDatabase } = require("../utils/functions");
-
-router.get("/received/:userId", (req, res) => {
+const { checkToken } = require("../middlewares/users");
+router.get("/received/:userId", checkToken, (req, res) => {
   db.query(
     "SELECT messages.*, sender.username AS senderUsername, recipent.username AS recipentUsername FROM messages JOIN users AS sender ON messages.sender = sender.ID JOIN users AS recipent ON messages.recipent = recipent.ID WHERE messages.recipent = ?",
     [req.params.userId],
@@ -14,7 +14,7 @@ router.get("/received/:userId", (req, res) => {
     }
   );
 });
-router.get("/sent/:userId", (req, res) => {
+router.get("/sent/:userId", checkToken, (req, res) => {
   db.query(
     "SELECT messages.*, sender.username AS senderUsername, recipent.username AS recipentUsername FROM messages JOIN users AS sender ON messages.sender = sender.ID JOIN users AS recipent ON messages.recipent = recipent.ID WHERE sender=?",
     [req.params.userId],
@@ -24,7 +24,7 @@ router.get("/sent/:userId", (req, res) => {
     }
   );
 });
-router.post("/delete", (req, res) => {
+router.post("/delete", checkToken, (req, res) => {
   console.log(req.body.data);
 
   if (req.body.data.length === 0) res.status(404).send("no images to delete!");
@@ -39,7 +39,7 @@ router.post("/delete", (req, res) => {
     res.status(200).send("messages has been deleted!");
   }
 });
-router.post("/send", (req, res) => {
+router.post("/send", checkToken, (req, res) => {
   const { sender, recipent, content, date, theme } = req.body.data;
 
   //   db.query(
