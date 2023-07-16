@@ -2,7 +2,10 @@ const express = require("express");
 const router = express.Router();
 const db = require("../database/db_connection");
 
-const { checkUsernameExistsInDatabase } = require("../utils/functions");
+const {
+  checkUsernameExistsInDatabase,
+  fetchUserFromDatabaseByUsername,
+} = require("../utils/functions");
 const { checkToken } = require("../middlewares/users");
 router.get("/received/:userId", checkToken, (req, res) => {
   db.query(
@@ -39,19 +42,21 @@ router.post("/delete", checkToken, (req, res) => {
     res.status(200).send("messages has been deleted!");
   }
 });
-router.post("/send", checkToken, (req, res) => {
-  const { sender, recipent, content, date, theme } = req.body.data;
+router.post("/send", checkToken, async (req, res) => {
+  const { sender, recipent, content, date, theme } = req.body;
 
-  //   db.query(
-  //     "INSERT INTO messages (content, sender, recipent, theme, date) VALUES (?,?,?,?,?)",
-  //     [content, sender, recipent, theme, date],
-  //     (err) => {
-  //       if (err) res.status(500).send("cannot send message");
-  //       else res.status(200).send("Message has been sent");
-  //     }
-  //   );
+  let recipentFullUserObject = await fetchUserFromDatabaseByUsername(recipent);
 
-  res.status(200).send("messages has been deleted!");
+  db.query(
+    "INSERT INTO messages (content, sender, recipent, theme, date) VALUES (?,?,?,?,?)",
+    [content, sender, recipentFullUserObject.ID, theme, date],
+    (err) => {
+      if (err) res.status(500).send("cannot send message");
+      else res.status(200).send("Message has been sent");
+    }
+  );
+
+  // res.status(200).send("messages has been deleted!");
 });
 
 router.post("/check-recipents", async (req, res) => {

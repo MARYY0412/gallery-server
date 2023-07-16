@@ -43,7 +43,6 @@ function checkUsernameExistsLogin(req, res, next) {
 //check token
 const checkToken = async (req, res, next) => {
   const authHeader = req.headers["authorization"];
-
   if (typeof authHeader === "undefined") {
     return res.status(401).send("Unauthorized");
   }
