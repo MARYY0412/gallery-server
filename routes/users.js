@@ -1,4 +1,6 @@
 const express = require("express");
+const app = express();
+app.use(express.urlencoded({ extended: false}))
 const router = express.Router();
 const db = require("../database/db_connection");
 // const fs = require("fs");
@@ -29,6 +31,7 @@ const {
   fetchUserFromDatabaseByUsername,
   deleteAllUserRatingsByUserId,
   saveImageToFolder,
+  fetchUsernameByIdFromDatabase,
 } = require("../utils/functions");
 //middlewares imports
 const {
@@ -44,6 +47,71 @@ const { sendForgotPasswordEmail } = require("../utils/sendingEmails");
 const multer = require("multer");
 const storage = multer.memoryStorage();
 const upload = multer();
+//PAGES WITHOUT AUTHORIZATION
+//data for user miniature box
+router.get("/user-miniature-info/:user_id", async (req, res) => {
+  const {user_id} = req.params;
+  try {
+    const username = await fetchUsernameByIdFromDatabase(user_id);
+    const findAvatar = await findAvatarInDatabase(user_id);
+    //if user does not have an avatar, findAvatar.avatar === null.
+    //In this case we load the basic avatar.
+    let avatarName = findAvatar.avatar === null ? "avatar-default.jpg" : findAvatar.avatar;
+    const imageBuffer = await readImageFromFolder("avatar-default.jpg", "./images/avatars/");
+    return res.status(200).send({username: username, avatar: imageBuffer});
+  } catch(error) {
+    console.log(error)
+    return res.status(500).send("Cannot download user data!")
+  }
+
+})
+//user profile
+router.post("/user/:userId", async (req, res) => {
+  const { userId } = req.params;
+
+  let user = await fetchUserFormDatabase(userId);
+  console.log(user)
+  if (user === null) {
+    res.status(404).send("user not found");
+  } else {
+    const { username, email, avatar, date_of_birth, ID, role } = user;
+    console.log(avatar, username);
+    if (avatar === null) {
+      readImageFromFolder("avatar-default.jpg", "./images/avatars/")
+        .then((data) => {
+          return res.status(200).send({
+            username: username,
+            email: email,
+            avatar: data,
+            date_of_birth: date_of_birth,
+            id: ID,
+            role: role,
+          });
+        })
+        .catch((err) => {
+          return res.status(500).send("Cannot fetch user data!");
+        });
+    } else {
+      readImageFromFolder(avatar, "./images/avatars/")
+        .then((data) => {
+          return res.status(200).send({
+            username: username,
+            email: email,
+            avatar: data,
+            date_of_birth: date_of_birth,
+            id: ID,
+            role: role,
+          });
+        })
+        .catch((err) => {
+          return res.status(500).send("Cannot fetch user data!");
+        });
+    }
+  }
+});
+
+
+
 //REGISTRATION
 router.post(
   "/register",
@@ -169,7 +237,7 @@ router.post("/forgot-password", async (req, res) => {
     else {
       const secret = JWT_SECRET + user.password;
       const token = jwt.sign({ username: user.username, id: user.ID }, secret, {
-        expiresIn: "5m",
+        expiresIn: "30m",
       });
       const link = `http://localhost:3001/users/reset-password/${user.ID}/${token}`;
       sendForgotPasswordEmail(user.email, link);
@@ -187,12 +255,14 @@ router.get("/reset-password/:id/:token", async (req, res) => {
     let user = await fetchUserFormDatabase(id);
     if (user === null) res.send("User does not exist!");
     else {
+      const secret = JWT_SECRET + user.password;
       try {
-        const secret = JWT_SECRET + user.password;
         const verify = jwt.verify(token, secret);
+        console.log(verify)
         res.render("resetPassword", {
           username: verify.username,
         });
+  
       } catch (err) {
         res.send("not verified");
       }
@@ -205,7 +275,7 @@ router.get("/reset-password/:id/:token", async (req, res) => {
 router.post("/reset-password/:id/:token", async (req, res) => {
   const { id, token } = req.params;
   const { password } = req.body;
-  console.log(password);
+  console.log(req.body);
   try {
     let user = await fetchUserFormDatabase(id);
     if (user === null) res.send("User does not exist!");
@@ -235,54 +305,13 @@ router.post("/reset-password/:id/:token", async (req, res) => {
     res.status(500).send("An error occurred!");
   }
 });
-//user profile
-router.post("/user/:userId", checkToken, async (req, res) => {
-  const { userId } = req.params;
 
-  let user = await fetchUserFormDatabase(userId);
-  if (user === null) {
-    res.status(404).send("user not found");
-  } else {
-    const { username, email, avatar, date_of_birth, ID, role } = user;
-    console.log(avatar, username);
-    if (avatar === null) {
-      readImageFromFolder("avatar-default.jpg", "./images/avatars/default/")
-        .then((data) => {
-          res.status(200).send({
-            username: username,
-            email: email,
-            avatar: data,
-            date_of_birth: date_of_birth,
-            id: ID,
-            role: role,
-          });
-        })
-        .catch((err) => {
-          res.status(500).send("Cannot fetch user data!");
-        });
-    } else {
-      readImageFromFolder(avatar, "./images/avatars/")
-        .then((data) => {
-          res.status(200).send({
-            username: username,
-            email: email,
-            avatar: data,
-            date_of_birth: date_of_birth,
-            id: ID,
-            role: role,
-          });
-        })
-        .catch((err) => {
-          res.status(500).send("Cannot fetch user data!");
-        });
-    }
-  }
-});
 
 router
   .route("/:user_id")
   //MIDDLEWARE CHECKING TOKEN
-  .all((req, res, next) => {
+  .all(async (req, res, next) => {
+    //version 1
     const authHeader = req.headers["authorization"];
     const token = authHeader.split(" ")[1];
 
@@ -400,4 +429,5 @@ router
     }
   });
 
+  
 module.exports = router;

@@ -12,22 +12,41 @@ const {
   deleteImagesFromDatabase,
   deleteUserFromDatabase,
   deleteAllUserRatingsByUserId,
+  fetchUsernameByIdFromDatabase
 } = require("../utils/functions");
 //middlewares imports
 const { checkToken } = require("../middlewares/users");
-
+//download data to admin panel
 router.get("/all-users", checkToken, (req, res) => {
   db.query("SELECT * FROM users", (err, results) => {
     if (err) return res.status(500).send("Cannot upload users!");
     else res.status(200).send(results);
   });
 });
-router.get("/all-images", checkToken, (req, res) => {
-  db.query("SELECT * FROM images", (err, results) => {
-    if (err) return res.status(500).send("Cannot upload images!");
-    else res.status(200).send(results);
-  });
+router.get("/all-images", checkToken, async (req, res) => {
+  try {
+    db.query("SELECT * FROM images", async (err, results) => {
+      if (err) {
+        return res.status(500).send("Cannot fetch images!");
+      } else {
+        const ImagesWithUsernames = await Promise.all(
+          results.map(async (x) => {
+            const username = await fetchUsernameByIdFromDatabase(x.user_id);
+            return { ...x, username };
+          })
+        );
+
+        console.log(ImagesWithUsernames);
+        res.status(200).send(ImagesWithUsernames);
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).send("Internal Server Error");
+  }
 });
+
+
 
 router.delete(`/image-delete/:imageId`, checkToken, async (req, res) => {
   const { imageId } = req.params;
