@@ -24,8 +24,12 @@ app.use("/photos", photosRouter);
 const adminRouter = require("./routes/admin");
 app.use("/admin", adminRouter);
 
-const messsagesRouter = require("./routes/messages");
-app.use("/messages", messsagesRouter);
+const messagesRouter = require("./routes/messages");
+app.use("/messages", messagesRouter);
+
+const searchRouter = require("./routes/search");
+app.use("/search", searchRouter);
+
 app.listen(3001);
 
 // Eksportowanie adminRouter jako funkcji pośredniczącej
